@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f2f2f7">
+<title>TATTOO TIMER</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;color:#1c1c1e;background:#f2f2f7;color-scheme:light}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f2f2f7}
+button{font:inherit;border:0;cursor:pointer}
+.screen{position:fixed;inset:0;display:none}
+.screen.active{display:flex}
+#startScreen{align-items:center;justify-content:center;background:#08100b;color:#fff}
+.start-card{text-align:center;width:min(88vw,360px)}
+.start-mark{font-size:54px;line-height:1;color:#34c759;margin-bottom:18px}
+.start-title{font-family:Impact,Haettenschweiler,"Arial Black",sans-serif;font-size:32px;letter-spacing:.12em;text-shadow:2px 2px 0 rgba(52,199,89,.5);margin-bottom:28px}
+.start-sub{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:#8e8e93;margin-bottom:18px}
+.start-actions{display:grid;gap:12px}
+.start-button{height:48px;border-radius:14px;background:#34c759;color:#071009;font-weight:700}
+.start-button.secondary{background:transparent;color:#34c759;border:1px solid rgba(52,199,89,.55)}
+#clockScreen{flex-direction:column;background:#f2f2f7;color:#1c1c1e;opacity:1}
+.clock-header{height:64px;flex:0 0 64px;display:flex;align-items:center;justify-content:center;padding:0 18px;background:#fff;border-bottom:1px solid #d1d1d6;position:relative}
+.brand{font-family:Impact,Haettenschweiler,"Arial Black",sans-serif;font-size:25px;letter-spacing:.1em;color:#1c1c1e;text-shadow:1px 1px 0 #d1d1d6;cursor:pointer}
+.home-button{position:absolute;right:16px;width:36px;height:36px;border-radius:50%;background:#f2f2f7;color:#007aff;font-size:24px;line-height:1}
+.clock-content{flex:1;overflow:auto;text-align:center;padding:34px 20px calc(112px + env(safe-area-inset-bottom,0px));background:#f2f2f7}
+.time-display{font-size:clamp(48px,15vw,72px);font-weight:300;letter-spacing:-.055em;line-height:1.1;margin:22px 0 8px;color:#1c1c1e;cursor:pointer;transition:color .2s}
+.time-display.recording{color:#34c759}
+.date-display{color:#8e8e93;font-size:15px;margin-bottom:42px}
+.mode{display:none;max-width:420px;margin:0 auto}.mode.active{display:block}
+.mode-caption{font-size:15px;color:#8e8e93;margin-bottom:8px}
+.value{font-size:clamp(48px,14vw,68px);font-weight:300;letter-spacing:-.04em;margin:30px 0;color:#1c1c1e}
+.actions{display:flex;justify-content:center;gap:12px}
+.action{min-width:120px;padding:13px 20px;border-radius:12px;background:#e5e5ea;color:#1c1c1e;font-size:15px;font-weight:600}
+.action.primary{background:#007aff;color:#fff}
+.timer-note{margin:30px 0 5px;color:#8e8e93;font-size:15px}.timer-note strong{display:block;color:#1c1c1e;font-size:17px;margin-top:7px}
+.bottom-tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;gap:8px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:rgba(255,255,255,.98);border-top:1px solid #d1d1d6}
+.tab{flex:1;padding:12px 6px;border-radius:10px;background:#e5e5ea;color:#3a3a3c;font-size:13px;font-weight:600}
+.tab.active{background:#007aff;color:#fff}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(12px);padding:10px 15px;border-radius:12px;background:rgba(28,28,30,.9);color:#fff;font-size:13px;opacity:0;pointer-events:none;transition:.2s;z-index:20;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<section class="screen active" id="startScreen">
+  <div class="start-card">
+    <div class="start-mark">◷</div>
+    <div class="start-title">TATTOO TIMER</div>
+    <div class="start-sub">choose your route</div>
+    <div class="start-actions">
+      <button class="start-button" id="fakeStart">Start</button>
+      <button class="start-button secondary" id="normalStart">Music Prayer</button>
+    </div>
+  </div>
+</section>
+
+<section class="screen" id="clockScreen">
+  <header class="clock-header">
+    <div class="brand" id="brandHome">TATTOO TIMER</div>
+    <button class="home-button" id="closeClock" aria-label="ホームへ戻る">×</button>
+  </header>
+  <main class="clock-content">
+    <div class="time-display" id="currentTime" title="タップで録画機能はありません">00:00:00</div>
+    <div class="date-display" id="currentDate">----</div>
+    <section class="mode active" id="modeNow"><div class="mode-caption">現在時刻</div></section>
+    <section class="mode" id="modeStopwatch">
+      <div class="value" id="stopwatchValue">00:00.0</div>
+      <div class="actions"><button class="action primary" id="stopwatchToggle">開始</button><button class="action" id="stopwatchReset">リセット</button></div>
+    </section>
+    <section class="mode" id="modeTimer">
+      <div class="timer-note">固定タイマー<strong>60分</strong></div>
+      <div class="value" id="timerValue">60:00</div>
+      <div class="actions"><button class="action primary" id="timerToggle">開始</button><button class="action" id="timerReset">リセット</button></div>
+    </section>
+  </main>
+  <nav class="bottom-tabs" aria-label="時計機能">
+    <button class="tab active" data-mode="now">現在時刻</button>
+    <button class="tab" data-mode="stopwatch">ストップウォッチ</button>
+    <button class="tab" data-mode="timer">タイマー</button>
+  </nav>
+</section>
+<div class="toast" id="toast"></div>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+let clockInterval=null;
+let stopwatchInterval=null,stopwatchRunning=false,stopwatchElapsed=0,stopwatchStarted=0;
+let timerInterval=null,timerRunning=false,timerRemaining=60*60,audioContext=null;
+function show(id){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));$(id).classList.add('active')}
+function pad(n){return String(n).padStart(2,'0')}
+function toast(message){const el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),2200)}
+function renderClock(){const d=new Date();$('currentTime').textContent=`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;$('currentDate').textContent=d.toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'long'})}
+function startClock(){renderClock();clearInterval(clockInterval);clockInterval=setInterval(renderClock,1000)}
+function setMode(mode){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===mode));document.querySelectorAll('.mode').forEach(m=>m.classList.remove('active'));$(`mode${mode[0].toUpperCase()+mode.slice(1)}`).classList.add('active')}
+function formatStopwatch(ms){const sec=Math.floor(ms/1000);return `${pad(Math.floor(sec/60))}:${pad(sec%60)}.${Math.floor(ms/100)%10}`}
+function renderStopwatch(){const elapsed=stopwatchRunning?stopwatchElapsed+Date.now()-stopwatchStarted:stopwatchElapsed;$('stopwatchValue').textContent=formatStopwatch(elapsed)}
+function toggleStopwatch(){if(stopwatchRunning){stopwatchElapsed+=Date.now()-stopwatchStarted;stopwatchRunning=false;clearInterval(stopwatchInterval);$('stopwatchToggle').textContent='再開'}else{stopwatchStarted=Date.now();stopwatchRunning=true;$('stopwatchToggle').textContent='停止';stopwatchInterval=setInterval(renderStopwatch,50)}}
+function resetStopwatch(){stopwatchRunning=false;stopwatchElapsed=0;clearInterval(stopwatchInterval);$('stopwatchToggle').textContent='開始';renderStopwatch()}
+function renderTimer(){$('timerValue').textContent=`${pad(Math.floor(timerRemaining/60))}:${pad(timerRemaining%60)}`}
+function resetTimer(){timerRunning=false;timerRemaining=3600;clearInterval(timerInterval);$('timerToggle').textContent='開始';renderTimer()}
+function prepareAudio(){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;audioContext=audioContext||new C();audioContext.resume();return audioContext}
+function playAlarm(){const ctx=prepareAudio();if(!ctx)return;[0,.35,.7].forEach((delay,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=i===1?1046.5:880;g.gain.setValueAtTime(.0001,ctx.currentTime+delay);g.gain.exponentialRampToValueAtTime(.28,ctx.currentTime+delay+.02);g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+delay+.25);o.connect(g).connect(ctx.destination);o.start(ctx.currentTime+delay);o.stop(ctx.currentTime+delay+.27)})}
+function toggleTimer(){if(timerRunning){timerRunning=false;clearInterval(timerInterval);$('timerToggle').textContent='再開';return}if(timerRemaining<=0)resetTimer();prepareAudio();timerRunning=true;$('timerToggle').textContent='停止';timerInterval=setInterval(()=>{timerRemaining--;renderTimer();if(timerRemaining<=0){timerRunning=false;clearInterval(timerInterval);$('timerToggle').textContent='開始';playAlarm();toast('タイマー終了')}} ,1000)}
+document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>setMode(tab.dataset.mode)));
+$('stopwatchToggle').addEventListener('click',toggleStopwatch);$('stopwatchReset').addEventListener('click',resetStopwatch);$('timerToggle').addEventListener('click',toggleTimer);$('timerReset').addEventListener('click',resetTimer);
+function enterClock(route){document.body.dataset.route=route;show('clockScreen');startClock()}
+$('fakeStart').addEventListener('click',()=>enterClock('fake'));$('normalStart').addEventListener('click',()=>enterClock('normal'));$('brandHome').addEventListener('click',()=>{show('clockScreen');startClock()});$('closeClock').addEventListener('click',()=>{show('startScreen');clearInterval(clockInterval)})
+</script>
+</body>
+</
